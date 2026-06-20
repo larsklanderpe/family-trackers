@@ -1,0 +1,753 @@
+<!DOCTYPE html><script type="application/json" id="cowork-artifact-meta">
+{
+  "name": "Relocation Tracker",
+  "schemaVersion": 1,
+  "description": "Unified relocation research tracker for Lars & Kim — Costa Rica (South Pacific, Nicoya, Norte Guanacaste, Central Valley), Sydney (Eastern Beaches, Northern Beaches, Central Coast, Paddington/Kingsford, Inner West), Austin (Downtown, Westlake Hills, Tarrytown, Barton Hills/Zilker). Destination tabs at top, sub-locale sidebar on left. Last CR data: June 19, 2026."
+}
+</script>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Relocation Tracker — Lars &amp; Kim</title>
+<style>
+  :root { color-scheme: light;
+    --teal:#0e7c7b; --navy:#17314f; --sand:#f6f1e7;
+    --green:#1f8a4c; --green-bg:#e3f5e8;
+    --red:#c0392b; --red-bg:#fbe6e3;
+    --yellow:#9c7a00; --yellow-bg:#fff6da;
+    --orange:#e67e22; --purple:#7b5ea7;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif; background:var(--sand); color:#222; line-height:1.5; font-size:14px; min-height:100vh; display:flex; flex-direction:column; }
+
+  /* ── Destination top bar ── */
+  .dest-bar { background:var(--navy); display:flex; align-items:stretch; padding:0 0 0 16px; flex-shrink:0; }
+  .dest-bar .logo { color:#fff; font-size:0.9rem; font-weight:700; opacity:0.7; display:flex; align-items:center; padding-right:20px; white-space:nowrap; letter-spacing:0.02em; }
+  .dest-btn { background:none; border:none; color:rgba(255,255,255,0.65); font-size:0.88rem; font-weight:600; padding:14px 22px; cursor:pointer; border-bottom:3px solid transparent; transition:all 0.15s; white-space:nowrap; }
+  .dest-btn:hover { color:#fff; background:rgba(255,255,255,0.07); }
+  .dest-btn.active { color:#fff; border-bottom-color:var(--teal); background:rgba(255,255,255,0.1); }
+
+  /* ── App body: sidebar + content ── */
+  .app-body { display:flex; flex:1; overflow:hidden; }
+  .sidebar { width:190px; flex-shrink:0; background:#fff; border-right:1px solid #ddd7c4; overflow-y:auto; padding:12px 0; }
+  .sidebar-dest-label { font-size:0.65rem; text-transform:uppercase; letter-spacing:0.08em; color:#999; padding:10px 14px 4px; display:block; }
+  .sub-btn { display:block; width:100%; text-align:left; background:none; border:none; padding:9px 14px; font-size:0.83rem; color:#444; cursor:pointer; border-left:3px solid transparent; line-height:1.3; }
+  .sub-btn:hover { background:#f5f0e6; color:var(--navy); }
+  .sub-btn.active { background:#eef6f6; color:var(--teal); border-left-color:var(--teal); font-weight:600; }
+  .sub-btn .sub-meta { font-size:0.7rem; color:#999; display:block; font-weight:400; margin-top:1px; }
+  .sub-btn.active .sub-meta { color:var(--teal); opacity:0.75; }
+
+  /* ── Content area ── */
+  .content { flex:1; overflow-y:auto; }
+  .locale-panel { display:none; }
+  .locale-panel.active { display:block; }
+
+  /* ── Stub panel ── */
+  .stub-panel { padding:40px 32px; max-width:700px; }
+  .stub-panel h2 { color:var(--navy); font-size:1.3rem; margin-bottom:8px; }
+  .stub-panel .stub-meta { color:#888; font-size:0.85rem; margin-bottom:24px; }
+  .stub-searches { background:#fff; border:1px solid #ddd7c4; border-radius:8px; padding:16px 20px; margin-bottom:20px; }
+  .stub-searches h3 { color:var(--navy); font-size:0.9rem; margin-bottom:10px; }
+  .stub-searches ul { padding-left:18px; }
+  .stub-searches li { font-size:0.85rem; margin-bottom:5px; color:#555; }
+  .stub-coming { background:var(--yellow-bg); border:1px solid #e8d89c; border-radius:6px; padding:12px 16px; font-size:0.83rem; color:var(--yellow); font-weight:600; }
+
+  /* ── CR tracker content ── */
+  .tracker-wrap { padding:0 24px 40px; max-width:1100px; }
+  .tracker-header { background:linear-gradient(135deg,var(--navy),var(--teal)); color:#fff; padding:18px 24px; }
+  .tracker-header h1 { font-size:1.25rem; margin-bottom:3px; }
+  .tracker-header .meta { font-size:0.82rem; opacity:0.9; }
+  .new-banner { background:#fff; border-left:5px solid var(--red); border-radius:0 6px 6px 0; padding:11px 16px; margin:16px 0 0; font-size:0.84rem; }
+  .new-banner strong { color:var(--red); }
+  .new-banner ul { padding-left:18px; margin-top:5px; }
+  .new-banner li { margin-bottom:3px; }
+  .summary { display:flex; gap:10px; flex-wrap:wrap; margin:14px 0; }
+  .stat { background:#fff; border:1px solid #ddd7c4; border-radius:8px; padding:8px 14px; text-align:center; min-width:90px; }
+  .stat .n { font-size:1.5rem; font-weight:700; color:var(--navy); line-height:1.1; }
+  .stat .lbl { font-size:0.66rem; color:#888; text-transform:uppercase; letter-spacing:0.04em; margin-top:2px; }
+  .controls { display:flex; flex-wrap:wrap; gap:8px; margin:14px 0; align-items:center; }
+  .controls strong { font-size:0.82rem; color:var(--navy); }
+  .ctrl-btn { border:1px solid #cfc7b2; background:#fff; color:var(--navy); border-radius:16px; padding:5px 13px; font-size:0.79rem; cursor:pointer; font-weight:600; }
+  .ctrl-btn.active { background:var(--navy); color:#fff; border-color:var(--navy); }
+  .zone { margin:20px 0; }
+  .zone h2 { color:#fff; background:var(--navy); padding:9px 14px; border-radius:6px 6px 0 0; font-size:1rem; }
+  .zone h2 .sub { font-size:0.77rem; opacity:0.85; font-weight:normal; display:block; }
+  table { width:100%; border-collapse:collapse; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,0.06); }
+  th,td { border:1px solid #e2dccb; padding:8px 9px; text-align:left; font-size:0.83rem; vertical-align:top; }
+  th { background:#eef3f2; color:var(--navy); font-size:0.71rem; text-transform:uppercase; letter-spacing:0.03em; }
+  tr:nth-child(even) td { background:#fbfaf6; }
+  .pill { display:inline-block; padding:2px 8px; border-radius:11px; font-size:0.69rem; font-weight:600; white-space:nowrap; }
+  .pg { background:var(--green-bg); color:var(--green); }
+  .pr { background:var(--red-bg); color:var(--red); }
+  .py { background:var(--yellow-bg); color:var(--yellow); }
+  .badge { display:inline-block; background:var(--red); color:#fff; font-size:0.59rem; font-weight:700; padding:1px 5px; border-radius:4px; margin-left:4px; vertical-align:middle; }
+  .drafted-badge { display:inline-block; background:var(--teal); color:#fff; font-size:0.59rem; font-weight:700; padding:1px 5px; border-radius:4px; margin-left:3px; vertical-align:middle; }
+  .star-badge { display:inline-block; background:var(--orange); color:#fff; font-size:0.59rem; font-weight:700; padding:1px 5px; border-radius:4px; margin-left:3px; vertical-align:middle; }
+  a { color:var(--teal); text-decoration:none; }
+  a:hover { text-decoration:underline; }
+  .outreach-box { background:#fff; border:1px solid #ddd; border-left:5px solid var(--teal); border-radius:0 6px 6px 0; padding:12px 16px; margin:18px 0; font-size:0.84rem; }
+  .outreach-box h3 { margin-bottom:8px; color:var(--navy); font-size:0.91rem; }
+  .outreach-item { margin:6px 0; padding:5px 10px; border-radius:4px; }
+  .outreach-item.ready { background:#e3f5e8; }
+  .outreach-item.pending { background:#fff6da; }
+  .outreach-item.waiting { background:#f8f9fa; }
+  .removed-box { background:#f8f9fa; border:1px solid #ddd; border-radius:4px; padding:8px 12px; margin-top:14px; font-size:0.79rem; color:#666; }
+  .note { font-size:0.77rem; color:#777; margin-top:16px; padding-bottom:20px; }
+</style>
+</head>
+<body>
+
+<!-- ── Destination top bar ── -->
+<div class="dest-bar">
+  <div class="logo">Lars &amp; Kim · Relocation</div>
+  <button class="dest-btn active" data-dest="cr">&#127796; Costa Rica</button>
+  <button class="dest-btn" data-dest="sydney">&#127466;&#127462; Sydney</button>
+  <button class="dest-btn" data-dest="austin">&#127774; Austin</button>
+</div>
+
+<div class="app-body">
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <!-- ── Content panels ── -->
+  <div class="content">
+
+    <!-- ═══════════════════════════════ SOUTH PACIFIC ═══════════════════════════════ -->
+    <div class="locale-panel active" id="panel-cr-south-pacific">
+      <div class="tracker-header">
+        <h1>&#127754; South Pacific</h1>
+        <div class="meta">Dominical &middot; Escaleras &middot; Uvita &middot; Bah&iacute;a Ballena &middot; Ojochal &mdash; weekly Friday scan &middot; Last updated: <strong>June 19, 2026</strong></div>
+      </div>
+      <div class="tracker-wrap">
+        <div class="new-banner">
+          <strong>&#128226; NEW THIS WEEK (June 19):</strong> Tropical Villa Ojochal (Starlink + saltwater pool &#11088;) &middot; Villa Eco del Rio Uvita (pets confirmed) &middot; Villa Jubilo Ojochal (200 Mbps) &middot; Casa en el Cielo (3BR/4BA pool) &middot; Casa Quetzal &#11014; upgraded (pets + fiber now confirmed).
+        </div>
+        <div class="summary">
+          <div class="stat"><div class="n">21</div><div class="lbl">Listings</div></div>
+          <div class="stat"><div class="n">11</div><div class="lbl">Strong Matches</div></div>
+          <div class="stat"><div class="n">4</div><div class="lbl">New This Week</div></div>
+          <div class="stat"><div class="n">11</div><div class="lbl">Drafts Created</div></div>
+        </div>
+        <div class="controls" id="sp-filters">
+          <strong>Filter:</strong>
+          <button class="ctrl-btn active" data-f="all">All</button>
+          <button class="ctrl-btn" data-f="pool">Pool &#10003;</button>
+          <button class="ctrl-btn" data-f="strong">Strong matches</button>
+          <button class="ctrl-btn" data-f="new">New this week</button>
+        </div>
+        <div id="sp-zones"></div>
+        <div class="outreach-box">
+          <h3>&#9993;&#65039; Outreach Status (11 drafts, none sent yet)</h3>
+          <strong>June 19 &mdash; NEW drafts (4):</strong> Osa Property Management &rarr; Villa Eco del Rio + Villa Jubilo (consolidated to info@osapropertymanagement.com) &middot; Tropical Villa Ojochal (Airbnb &mdash; self-addressed) &middot; Casa en el Cielo (Airbnb &mdash; self-addressed) &middot; Casa Quetzal (contact form &mdash; self-addressed).<br><br>
+          <strong>June 11 &mdash; Awaiting send (7):</strong> Ocean &amp; Sunset View + Casita &rarr; Joshua Kanter, WhatsApp +506 8703-1130 &middot; 2BR+Office+Pool (Ojochal) &rarr; Kathia Araya, WhatsApp +506 7011-8399 &middot; Villa Mountain Serenity, Casa de los Sue&ntilde;os, Casa Futura, Casa Fishplanx, Estilo de Vida &rarr; Costa Ballena Management (costaballenamanagement@yahoo.com).
+        </div>
+        <div class="note">Snapshot of the June 11&ndash;19, 2026 scans. Full HTML report (costa_rica_rentals_south_pacific_06192026.html) and contacts_log.json in the Costa Rica Relocation project folder.</div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════ NICOYA ═══════════════════════════════ -->
+    <div class="locale-panel" id="panel-cr-nicoya">
+      <div class="tracker-header">
+        <h1>&#127958;&#65039; Nicoya Peninsula</h1>
+        <div class="meta">Nosara (Guiones &middot; Pelada &middot; Garza) + S&aacute;mara/Carrillo &mdash; weekly Friday scan &middot; Last updated: <strong>June 19, 2026</strong></div>
+      </div>
+      <div class="tracker-wrap">
+        <div class="new-banner">
+          <strong>&#128226; NEW THIS WEEK (June 19):</strong> 9 new listings found &mdash; Vacation Nosara&rsquo;s long-term page now shows public monthly pricing for 7 qualifying houses.
+          <ul>
+            <li>&#11088; <strong>Villa Huitzilin</strong> &mdash; 4BR/4BA, saltwater pool, Starlink+fiber WiFi, desks in every room. Top remote-work pick.</li>
+            <li>&#11088; <strong>Vacation Nosara batch</strong> (7 properties, $3,000&ndash;$4,200): Casa de Calma, Pochote, Casa Arena, Casa Saltamontes, Patitos Casa, Girasol, Casa Ocaso. All 3&ndash;4BR with pool, walk to beach.</li>
+            <li><strong>Casa Dos Cocos</strong> (Rent Nosara) &mdash; 4BR/4.5BA, Guiones Beach Club.</li>
+          </ul>
+          <strong>Removed:</strong> Both S&aacute;mara pool listings on Encuentra24 deleted (likely rented).
+        </div>
+        <div class="summary">
+          <div class="stat"><div class="n" id="nic-total">29</div><div class="lbl">Listings</div></div>
+          <div class="stat"><div class="n">14</div><div class="lbl">Strong Matches</div></div>
+          <div class="stat"><div class="n">9</div><div class="lbl">New This Week</div></div>
+          <div class="stat"><div class="n">4</div><div class="lbl">Drafts Ready</div></div>
+        </div>
+        <div class="controls" id="nic-filters">
+          <strong>Filter:</strong>
+          <button class="ctrl-btn active" data-f="all">All</button>
+          <button class="ctrl-btn" data-f="pool">Pool &#10003;</button>
+          <button class="ctrl-btn" data-f="pet">Pets &#10003;</button>
+          <button class="ctrl-btn" data-f="new">New this week</button>
+          <button class="ctrl-btn" data-f="drafted">Outreach drafted</button>
+        </div>
+        <div id="nic-zones"></div>
+        <div class="outreach-box">
+          <h3>&#9993;&#65039; Outreach Status &mdash; June 19, 2026</h3>
+          <div class="outreach-item ready">&#9989; <strong>READY TO SEND:</strong> Vacation Nosara (7 properties) &rarr; reservations@vacationnosara.com (Gmail draft r221854163974400612)</div>
+          <div class="outreach-item ready">&#9989; <strong>READY TO SEND:</strong> Rent Nosara (Casa Estrellas + Casa Dos Cocos) &rarr; info@rentnosara.com (Gmail draft r-7175475303642038667)</div>
+          <div class="outreach-item ready">&#9888;&#65039; <strong>READY &mdash; PASTE TO WHATSAPP:</strong> Alba Reservations +506 8817-6555 (Villa Huitzilin, Jungle Houses A&amp;B, Casa Rinc&oacute;n, Casa Bellevue) &rarr; Self-addressed draft r8761734973145469282</div>
+          <div class="outreach-item waiting">&#128336; <strong>WAITING (from 06-12, not confirmed sent):</strong> Mango Property Mgmt &rarr; mpmnosararentals@gmail.com (Private Beach House, Playa Pelada)</div>
+          <div class="outreach-item pending">&#9203; <strong>PENDING &mdash; Airbnb (from 06-12):</strong> Casa Guapa, Jungle River Villa, house savana, Sunset Surf &mdash; drafts created 06-12, contact via Airbnb message.</div>
+        </div>
+        <div class="removed-box">
+          &#128465;&#65039; <strong>Removed since June 12:</strong> "Alquiler Casa en S&aacute;mara Guanacaste 3 hab en condominio" (Encuentra24 #30961783) &mdash; deleted. "Se alquila casa con piscina en S&aacute;mara" (Encuentra24 #31002475) &mdash; deleted. Both likely rented.
+        </div>
+        <div class="note">Snapshot of the June 19, 2026 scan. Refreshed weekly. Full report (costa_rica_rentals_nicoya_06192026.html) in the Costa Rica Relocation project folder.</div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════ NORTE GUANACASTE ═══════════════════════════════ -->
+    <div class="locale-panel" id="panel-cr-norte-guanacaste">
+      <div class="tracker-header">
+        <h1>&#128034; Norte Guanacaste</h1>
+        <div class="meta">Playa Domingo &rarr; Avellanas/Negra &rarr; Tamarindo/Villareal &rarr; Playa Grande &rarr; Flamingo/Potrero &mdash; weekly Friday scan &middot; Last updated: <strong>June 12, 2026</strong></div>
+      </div>
+      <div class="tracker-wrap">
+        <div class="summary">
+          <div class="stat"><div class="n">9</div><div class="lbl">Listings</div></div>
+          <div class="stat"><div class="n">4</div><div class="lbl">Strong Matches</div></div>
+          <div class="stat"><div class="n">9</div><div class="lbl">New This Week</div></div>
+          <div class="stat"><div class="n">4</div><div class="lbl">Emails Drafted</div></div>
+        </div>
+        <div class="controls" id="ng-filters">
+          <strong>Filter:</strong>
+          <button class="ctrl-btn active" data-f="all">All</button>
+          <button class="ctrl-btn" data-f="pool">Pool &#10003;</button>
+          <button class="ctrl-btn" data-f="strong">Strong matches</button>
+        </div>
+        <div id="ng-zones"></div>
+        <div class="outreach-box">
+          <h3>&#9993;&#65039; Outreach drafted (4, not sent)</h3>
+          Casa Tigre + Riviera Casa 5 &rarr; Flamingo Costa Rica, self-addressed/WhatsApp +1-941-951-6222 (consolidated) &middot; Buda House + Pacific Residences #13 &rarr; Hidden Coast Realty, info@hiddencoastrealty.com (consolidated) &middot; 3BR Beach House Playa Grande &rarr; 1st Choice Realty &middot; Rent Avellanas Portfolio.
+        </div>
+        <div class="note">Snapshot of the June 12, 2026 scan. Southern anchor Playa Domingo (~2 hr from LIR) not yet covered &mdash; flagged for clarification. Refreshed weekly.</div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════ CENTRAL VALLEY ═══════════════════════════════ -->
+    <div class="locale-panel" id="panel-cr-central-valley">
+      <div class="tracker-header">
+        <h1>&#127968; Central Valley</h1>
+        <div class="meta">Escaz&uacute; &middot; Santa Ana &middot; Heredia &middot; Bel&eacute;n/Cariari &mdash; weekly Friday scan &middot; Last updated: <strong>June 19, 2026</strong></div>
+      </div>
+      <div class="tracker-wrap">
+        <div class="new-banner">
+          <strong>&#128226; NEW THIS WEEK &mdash; June 19, 2026</strong><br>
+          <span class="k">5 new listings</span> via Costa Rica MLS (re.cr), all from Realty ONE Group CR (agent Sergio E. Gonz&aacute;lez, info@realtyonegroup.cr). <span class="k">2 top picks</span>: House in Santa Ana ($2,000/mo, pool + pets confirmed) + VILLAS DEL REY Escaz&uacute; ($1,500/mo, 200m&sup2;, best value). <span class="k">1 consolidated bilingual draft</span> covers both &mdash; ready to send. Total tracked: <span class="k">18 listings</span> across 4 zones.
+        </div>
+        <div class="outreach-box" style="margin-top:14px;">
+          <h3>&#128140; Outreach Status</h3>
+          <div class="outreach-item ready">&#128992; <strong>READY TO SEND:</strong> Realty ONE Group CR (2 listings: Santa Ana RL1800033 + Villas del Rey RL1800164) &rarr; info@realtyonegroup.cr</div>
+          <div class="outreach-item pending">&#128993; <strong>PENDING:</strong> Horizons Realty CR (Rinc&oacute;n de las Brisas, Heredia) &rarr; jbrat@horizonsrealtycr.com &mdash; draft from 06/12, not yet sent</div>
+          <div class="outreach-item pending">&#128993; <strong>PENDING (form):</strong> Calahonda, Escaz&uacute; &rarr; inmobiliaria.com contact form (self-addressed &#9888;&#65039; draft)</div>
+          <div class="outreach-item pending">&#128993; <strong>PENDING (form):</strong> Condominio en Lindora &rarr; Encuentra24 #32170141 contact form (self-addressed &#9888;&#65039; draft)</div>
+        </div>
+        <div class="controls" id="cv-filters" style="margin-top:12px;">
+          <strong>Filter:</strong>
+          <button class="ctrl-btn active" data-f="all">All (18)</button>
+          <button class="ctrl-btn" data-f="new">&#128226; New this week</button>
+          <button class="ctrl-btn" data-f="pool">Pool &#10003;</button>
+          <button class="ctrl-btn" data-f="pet">Pet-friendly &#10003;</button>
+          <button class="ctrl-btn" data-f="escazu">Escaz&uacute;</button>
+          <button class="ctrl-btn" data-f="santaana">Santa Ana</button>
+          <button class="ctrl-btn" data-f="heredia">Heredia</button>
+          <button class="ctrl-btn" data-f="belen">Bel&eacute;n/Cariari</button>
+        </div>
+        <div id="cv-zones"></div>
+        <div class="note">Last updated: June 19, 2026 (week 2 of Central Valley scan). Full report: costa_rica_rentals_central_valley_06192026.html in the Costa Rica Relocation folder. &#128992; = ready to send &middot; &#128993; = pending action &middot; &#128994; = sent.</div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════ SYDNEY STUBS ═══════════════════════════════ -->
+    <div class="locale-panel" id="panel-sydney-eastern-beaches">
+      <div class="stub-panel">
+        <h2>&#127944; Eastern Beaches</h2>
+        <div class="stub-meta">Bondi Beach &middot; Coogee &middot; Bronte &middot; Maroubra &middot; Cronulla area</div>
+        <div class="stub-searches">
+          <h3>Planned search areas</h3>
+          <ul>
+            <li>Bondi / Bondi Junction</li>
+            <li>Coogee / Randwick</li>
+            <li>Bronte / Tamarama</li>
+            <li>Maroubra / Malabar</li>
+            <li>Cronulla / Sutherland Shire</li>
+          </ul>
+        </div>
+        <div class="stub-coming">&#9200; Search not yet started &mdash; coming soon</div>
+      </div>
+    </div>
+
+    <div class="locale-panel" id="panel-sydney-northern-beaches">
+      <div class="stub-panel">
+        <h2>&#9961;&#65039; Northern Beaches</h2>
+        <div class="stub-meta">Manly &middot; Dee Why &middot; Narrabeen &middot; Avalon &middot; Palm Beach area</div>
+        <div class="stub-searches">
+          <h3>Planned search areas</h3>
+          <ul>
+            <li>Manly / Fairlight</li>
+            <li>Dee Why / Curl Curl</li>
+            <li>Narrabeen / Collaroy</li>
+            <li>Newport / Avalon</li>
+            <li>Palm Beach</li>
+          </ul>
+        </div>
+        <div class="stub-coming">&#9200; Search not yet started &mdash; coming soon</div>
+      </div>
+    </div>
+
+    <div class="locale-panel" id="panel-sydney-central-coast">
+      <div class="stub-panel">
+        <h2>&#127965;&#65039; Central Coast</h2>
+        <div class="stub-meta">Gosford &middot; Terrigal &middot; Avoca Beach &middot; The Entrance area</div>
+        <div class="stub-searches">
+          <h3>Planned search areas</h3>
+          <ul>
+            <li>Terrigal / Wamberal</li>
+            <li>Avoca Beach / Copacabana</li>
+            <li>Gosford / Point Frederick</li>
+            <li>The Entrance / Long Jetty</li>
+            <li>Ettalong Beach / Umina</li>
+          </ul>
+        </div>
+        <div class="stub-coming">&#9200; Search not yet started &mdash; coming soon</div>
+      </div>
+    </div>
+
+    <div class="locale-panel" id="panel-sydney-paddington">
+      <div class="stub-panel">
+        <h2>&#127981; Paddington / Kingsford</h2>
+        <div class="stub-meta">Paddington &middot; Surry Hills &middot; Kingsford &middot; Kensington area</div>
+        <div class="stub-searches">
+          <h3>Planned search areas</h3>
+          <ul>
+            <li>Paddington / Woollahra</li>
+            <li>Surry Hills / Darlinghurst</li>
+            <li>Kingsford / Kensington</li>
+            <li>Newtown (east)</li>
+            <li>Moore Park / Centennial Park</li>
+          </ul>
+        </div>
+        <div class="stub-coming">&#9200; Search not yet started &mdash; coming soon</div>
+      </div>
+    </div>
+
+    <div class="locale-panel" id="panel-sydney-inner-west">
+      <div class="stub-panel">
+        <h2>&#127968; Inner West</h2>
+        <div class="stub-meta">Newtown &middot; Glebe &middot; Balmain &middot; Leichhardt &middot; Rozelle area</div>
+        <div class="stub-searches">
+          <h3>Planned search areas</h3>
+          <ul>
+            <li>Newtown / Enmore</li>
+            <li>Glebe / Forest Lodge</li>
+            <li>Balmain / Rozelle</li>
+            <li>Leichhardt / Lilyfield</li>
+            <li>Marrickville / Dulwich Hill</li>
+          </ul>
+        </div>
+        <div class="stub-coming">&#9200; Search not yet started &mdash; coming soon</div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════ AUSTIN STUBS ═══════════════════════════════ -->
+    <div class="locale-panel" id="panel-austin-downtown">
+      <div class="stub-panel">
+        <h2>&#127961;&#65039; Downtown Austin</h2>
+        <div class="stub-meta">CBD &middot; East Austin &middot; South Congress &middot; Rainey Street area</div>
+        <div class="stub-searches">
+          <h3>Planned search areas</h3>
+          <ul>
+            <li>Downtown / 2nd Street District</li>
+            <li>East Austin / East 6th</li>
+            <li>South Congress (SoCo)</li>
+            <li>Rainey Street / Red River</li>
+            <li>Travis Heights / Bouldin Creek</li>
+          </ul>
+        </div>
+        <div class="stub-coming">&#9200; Search not yet started &mdash; coming soon</div>
+      </div>
+    </div>
+
+    <div class="locale-panel" id="panel-austin-westlake">
+      <div class="stub-panel">
+        <h2>&#127968; Westlake Hills</h2>
+        <div class="stub-meta">Westlake Hills &middot; Eanes ISD area &middot; Bee Cave adjacent</div>
+        <div class="stub-searches">
+          <h3>Planned search areas</h3>
+          <ul>
+            <li>Westlake Hills proper</li>
+            <li>Lost Creek / Rob Roy</li>
+            <li>Rollingwood</li>
+            <li>West Lake Hills &amp; environs</li>
+            <li>Bee Cave / Hudson Bend</li>
+          </ul>
+        </div>
+        <div class="stub-coming">&#9200; Search not yet started &mdash; coming soon</div>
+      </div>
+    </div>
+
+    <div class="locale-panel" id="panel-austin-tarrytown">
+      <div class="stub-panel">
+        <h2>&#127981; Tarrytown</h2>
+        <div class="stub-meta">Old Austin neighborhood &middot; Central / West Austin</div>
+        <div class="stub-searches">
+          <h3>Planned search areas</h3>
+          <ul>
+            <li>Tarrytown proper</li>
+            <li>Pemberton Heights</li>
+            <li>Bryker Woods</li>
+            <li>Old West Austin / Clarksville</li>
+            <li>Enfield / Judges Hill</li>
+          </ul>
+        </div>
+        <div class="stub-coming">&#9200; Search not yet started &mdash; coming soon</div>
+      </div>
+    </div>
+
+    <div class="locale-panel" id="panel-austin-barton-hills">
+      <div class="stub-panel">
+        <h2>&#127344; Barton Hills / Zilker</h2>
+        <div class="stub-meta">Active lifestyle hub &middot; Near Barton Springs &amp; Lady Bird Lake</div>
+        <div class="stub-searches">
+          <h3>Planned search areas</h3>
+          <ul>
+            <li>Barton Hills</li>
+            <li>Zilker / Barton Springs area</li>
+            <li>West Congress / South Lamar</li>
+            <li>Bouldin Creek</li>
+            <li>South First / South 5th area</li>
+          </ul>
+        </div>
+        <div class="stub-coming">&#9200; Search not yet started &mdash; coming soon</div>
+      </div>
+    </div>
+
+  </div><!-- /.content -->
+</div><!-- /.app-body -->
+
+<script>
+/* ── Data ── */
+const DESTS = {
+  cr: {
+    label:'Costa Rica', icon:'&#127796;',
+    subs:[
+      {id:'south-pacific',  label:'South Pacific',     meta:'Dominical &middot; Uvita &middot; Ojochal'},
+      {id:'nicoya',         label:'Nicoya / Nosara',   meta:'Nosara &middot; S&aacute;mara &middot; Carrillo'},
+      {id:'norte-guanacaste',label:'Norte Guanacaste', meta:'Tamarindo &middot; Flamingo &middot; Avellanas'},
+      {id:'central-valley', label:'Central Valley',    meta:'Escaz&uacute; &middot; Santa Ana &middot; Heredia'}
+    ]
+  },
+  sydney: {
+    label:'Sydney', icon:'&#127466;&#127462;',
+    subs:[
+      {id:'eastern-beaches',  label:'Eastern Beaches',      meta:'Bondi &middot; Coogee &middot; Cronulla', stub:true},
+      {id:'northern-beaches', label:'Northern Beaches',     meta:'Manly &middot; Dee Why &middot; Avalon', stub:true},
+      {id:'central-coast',    label:'Central Coast',        meta:'Terrigal &middot; Gosford &middot; Avoca', stub:true},
+      {id:'paddington',       label:'Paddington / Kingsford',meta:'Paddo &middot; Surry Hills &middot; Kingsford', stub:true},
+      {id:'inner-west',       label:'Inner West',           meta:'Newtown &middot; Glebe &middot; Balmain', stub:true}
+    ]
+  },
+  austin: {
+    label:'Austin', icon:'&#127774;',
+    subs:[
+      {id:'downtown',     label:'Downtown',          meta:'CBD &middot; East Austin &middot; SoCo', stub:true},
+      {id:'westlake',     label:'Westlake Hills',    meta:'Westlake Hills &middot; Rollingwood', stub:true},
+      {id:'tarrytown',    label:'Tarrytown',         meta:'Tarrytown &middot; Pemberton &middot; Bryker', stub:true},
+      {id:'barton-hills', label:'Barton Hills / Zilker', meta:'Barton Springs &middot; Lady Bird Lake', stub:true}
+    ]
+  }
+};
+
+/* ── State ── */
+let activeDest = 'cr';
+let activeSub  = 'south-pacific';
+
+/* ── Sidebar render ── */
+function renderSidebar() {
+  const dest = DESTS[activeDest];
+  const sb = document.getElementById('sidebar');
+  sb.innerHTML = `<span class="sidebar-dest-label">${dest.label}</span>` +
+    dest.subs.map(s => {
+      const isActive = s.id === activeSub;
+      const stubDot = s.stub ? ' <span style="font-size:0.6rem;color:#bbb;">&#9679;</span>' : '';
+      return `<button class="sub-btn${isActive?' active':''}" data-dest="${activeDest}" data-sub="${s.id}">
+        ${s.label}${stubDot}
+        <span class="sub-meta">${s.meta}</span>
+      </button>`;
+    }).join('');
+}
+
+/* ── Panel visibility ── */
+function showPanel(dest, sub) {
+  document.querySelectorAll('.locale-panel').forEach(p => p.classList.remove('active'));
+  const panel = document.getElementById(`panel-${dest}-${sub}`);
+  if (panel) panel.classList.add('active');
+}
+
+/* ── Top-nav clicks ── */
+document.querySelector('.dest-bar').addEventListener('click', e => {
+  const btn = e.target.closest('.dest-btn');
+  if (!btn) return;
+  activeDest = btn.dataset.dest;
+  activeSub  = DESTS[activeDest].subs[0].id;
+  document.querySelectorAll('.dest-btn').forEach(b => b.classList.toggle('active', b === btn));
+  renderSidebar();
+  showPanel(activeDest, activeSub);
+});
+
+/* ── Sidebar clicks ── */
+document.getElementById('sidebar').addEventListener('click', e => {
+  const btn = e.target.closest('.sub-btn');
+  if (!btn) return;
+  activeSub = btn.dataset.sub;
+  document.querySelectorAll('.sub-btn').forEach(b => b.classList.toggle('active', b === btn));
+  showPanel(activeDest, activeSub);
+});
+
+/* ── Zone render helpers ── */
+const pc = {g:'pg', y:'py', r:'pr'};
+function pill(v, yes, no) {
+  const cls = pc[v] || 'py';
+  const lbl = v==='g' ? yes : v==='r' ? no : 'Ask';
+  return `<span class="pill ${cls}">${lbl}</span>`;
+}
+function renderZones(containerId, data, cols, rowFn) {
+  const c = document.getElementById(containerId);
+  c.innerHTML = '';
+  data.forEach(z => {
+    let h = `<div class="zone"><h2>${z.z}${z.s?`<span class="sub">${z.s}</span>`:''}</h2>
+      <table><tr>${cols.map(col=>`<th>${col}</th>`).join('')}</tr>`;
+    z.rows.forEach(r => { h += rowFn(r); });
+    h += '</table></div>';
+    c.insertAdjacentHTML('beforeend', h);
+  });
+}
+
+/* ── SOUTH PACIFIC data ── */
+const spData = [
+ {z:'Zone 1 &mdash; Dominical / Escaleras / Lagunas de Bar&uacute;',s:'Priority area',rows:[
+  {n:'Ocean &amp; Sunset View + Casita',a:'Lagunas de Bar&uacute;',p:'$350/nt (LT TBD)',b:'4BR/3BA',pool:'g',pet:'y',net:'Fiber &#10003;',u:'https://www.dominicalproperty.com/property/ocean-and-sunset-view-home-with-pool-plus-casita/',src:'Dominical Property',note:'&#11088; Ask monthly rate. &#9993; Drafted 6/11.',st:1,isnew:0},
+  {n:'Villa Mountain Serenity',a:'Cascada Azul',p:'Ask',b:'3BR/3BA',pool:'g',pet:'y',net:'USB data card (verify)',u:'http://www.costaballenamanagement.com/rentals-in-dominical-area.html',src:'Costa Ballena Mgmt',note:'&#11088; A/C throughout. &#9993; Drafted 6/11.',st:1,isnew:0},
+  {n:'Casa de los Sue&ntilde;os',a:'Escaleras',p:'Ask',b:'3BR/2BA',pool:'g',pet:'y',net:'128kbps &#9888;&#65039;',u:'http://www.costaballenamanagement.com/rentals-in-dominical-area.html',src:'Costa Ballena Mgmt',note:'&#11088; Pool + jacuzzi. Slow internet &mdash; deal-breaker? &#9993; Drafted 6/11.',st:1,isnew:0},
+  {n:'Casa Cecilia',a:'Escaleras',p:'Ask',b:'Unknown',pool:'g',pet:'y',net:'Confirmed',u:'http://www.costaballenamanagement.com/rentals-in-dominical-area.html',src:'Costa Ballena Mgmt',note:'Need bedroom count. Covered in CBM draft 6/11.',st:0,isnew:0},
+  {n:'Casa Quetzal &#11014;',a:'Lagunas de Bar&uacute;',p:'$1,850',b:'2BR/2BA',pool:'g',pet:'g',net:'Fiber &#10003; (Red y Com)',u:'https://www.dominicalproperty.com/property/casa-quetzal-long-term-rental-in-lagunas/',src:'Dominical Property',note:'&#11014; UPDATED 6/19: pets &#10003; + fiber &#10003; + pool &#10003; confirmed. 2BR only. &#9993; Drafted 6/19.',st:0,isnew:1},
+  {n:'Ocean View Home for Rent',a:'Escaleras',p:'$3,200',b:'2BR/2BA',pool:'y',pet:'y',net:'Ask',u:'',src:'Dominical Property',note:'Only 2BR. Backup option.',st:0,isnew:0}
+ ]},
+ {z:'Zone 2 &mdash; Uvita / Bah&iacute;a Ballena / Playa Hermosa',s:'',rows:[
+  {n:'Villa Eco del Rio &#128226;',a:'Uvita (gated, near river)',p:'Ask (Airbnb monthly TBD)',b:'3BR',pool:'g',pet:'g',net:'Ask',u:'https://costaricalasvillas.com/vacation-rental/villa-eco-del-rio-uvita-3-bedroom-private-pool/',src:'Osa Property Mgmt',note:'&#128226; NEW. Pet-friendly confirmed via guest reviews. Private pool, gated, AC each room. &#9993; Drafted 6/19.',st:1,isnew:1},
+  {n:'Casa Futura',a:'Uvita (4x4 access, 400ft)',p:'Ask',b:'3BR/3BA ensuite',pool:'g',pet:'y',net:'Fiber &#10003;',u:'http://www.costaballenamanagement.com/rentals-in-uvita-area.html',src:'Costa Ballena Mgmt',note:'&#11088; Fiber, pool, Whale\'s Tail views. 4x4 needed. &#9993; Drafted 6/11.',st:1,isnew:0},
+  {n:'Casa Fishplanx',a:'Bah&iacute;a (walk to beach)',p:'Ask',b:'3BR/3BA ensuite',pool:'g',pet:'y',net:'Wi-Fi &#10003;',u:'http://www.costaballenamanagement.com/rentals-in-uvita-area.html',src:'Costa Ballena Mgmt',note:'&#11088; Courtyard pool, alarm + parking. &#9993; Drafted 6/11.',st:1,isnew:0},
+  {n:'Casa RoMa',a:'Bah&iacute;a (near Marino Ballena NP)',p:'Ask',b:'2BR/2BA',pool:'g',pet:'g',net:'Fiber &#10003;',u:'',src:'&mdash;',note:'Only 2BR. Backup.',st:0,isnew:0},
+  {n:'Alegria Tropical',a:'Bah&iacute;a',p:'Ask',b:'2BR',pool:'g',pet:'y',net:'Confirmed',u:'',src:'&mdash;',note:'2BR &mdash; likely short on bedrooms.',st:0,isnew:0},
+  {n:'Long Term Rental 2BR',a:'Uvita',p:'$1,300',b:'2BR/1BA',pool:'r',pet:'y',net:'Ask',u:'https://www.dominicalproperty.com/property/long-term-rental-home-in-uvita-2-bedrooms/',src:'Dominical Property',note:'Below criteria. Completeness only.',st:0,isnew:0}
+ ]},
+ {z:'Zone 3 &mdash; Ojochal / Tres R&iacute;os / Cinco Ventanas',s:'Strong inventory this week',rows:[
+  {n:'Tropical Villa Ojochal | Starlink &#128226;&#11088;',a:'Ojochal',p:'Ask (Airbnb monthly TBD)',b:'3BR/2.5BA',pool:'g',pet:'y',net:'Starlink &#10003; &#11088;',u:'https://www.airbnb.com/rooms/1450339894578676281',src:'Airbnb',note:'&#128226; BEST NEW FIND. Saltwater pool, Starlink, mountain views, modern build. &#9993; Drafted 6/19.',st:1,isnew:1},
+  {n:'Villa Jubilo &#128226;',a:'Ojochal',p:'Ask (monthly TBD)',b:'3BR/2BA',pool:'g',pet:'y',net:'200 Mbps &#10003;',u:'https://costaricalasvillas.com/vacation-rental/villa-jubilo-ojochal/',src:'Osa Property Mgmt',note:'&#128226; NEW. Easy access (no 4x4), 200 Mbps. &#9993; Drafted 6/19.',st:1,isnew:1},
+  {n:'Casa en el Cielo &#128226;',a:'Ojochal (Punta Mala area)',p:'~$207/nt &rarr; ask LT rate',b:'3BR/4BA',pool:'g',pet:'y',net:'Wi-Fi &#10003;',u:'https://www.airbnb.com/rooms/906631002937492794',src:'Airbnb',note:'&#128226; NEW. 3BR/4BA, private pool, garden, BBQ. &#9993; Drafted 6/19.',st:1,isnew:1},
+  {n:'Estilo de Vida',a:'Cinco Ventanas, Ojochal',p:'Ask',b:'3BR/2.5BA',pool:'g',pet:'y',net:'Wi-Fi &#10003;',u:'http://www.costaballenamanagement.com/rentals-in-ojochal-area.html',src:'Costa Ballena Mgmt',note:'&#11088;&#11088; BEST OVERALL SPEC MATCH &mdash; exact 3BR/2.5BA, pool + jacuzzi. &#9993; Drafted 6/11.',st:1,isnew:0},
+  {n:'Villa Cascadas',a:'Ojochal',p:'Ask',b:'3BR/2BA',pool:'g',pet:'y',net:'Ask',u:'http://www.costaballenamanagement.com/rentals-in-ojochal-area.html',src:'Costa Ballena Mgmt',note:'Zero-edge pool, ocean + mountain views. CBM draft 6/11.',st:0,isnew:0},
+  {n:'2BR + Office + Pool',a:'Ojochal',p:'$1,600 + util',b:'2BR+office/2BA',pool:'g',pet:'y',net:'High-speed &#10003;',u:'https://www.dominicalproperty.com/property/for-rent-2-bedroom-home-office-room-pool-and-garden/',src:'Dominical Property',note:'&#11088; Excellent 2BD+office fit. &#9993; Drafted 6/11.',st:1,isnew:0},
+  {n:'Casa Dulce',a:'Ojochal (Avancari)',p:'Ask',b:'Unknown',pool:'y',pet:'r',net:'Wi-Fi &#10003;',u:'',src:'Costa Ballena Mgmt',note:'EXCLUDED &mdash; explicitly no pets.',st:0,isnew:0}
+ ]}
+];
+let spFilter = 'all';
+function renderSP() {
+  const c = document.getElementById('sp-zones'); c.innerHTML = '';
+  spData.forEach(z => {
+    const rows = z.rows.filter(r => spFilter==='all'||spFilter==='pool'?r.pool==='g':spFilter==='strong'?r.st===1:r.isnew===1);
+    const allRows = spFilter==='all' ? z.rows : rows;
+    const show = spFilter==='all' ? z.rows : rows;
+    if (!show.length) return;
+    let h = `<div class="zone"><h2>${z.z}${z.s?`<span class="sub">${z.s}</span>`:''}</h2><table><tr><th>Property</th><th>Area</th><th>Price/mo</th><th>Beds/Baths</th><th>Pool</th><th>Pets</th><th>Internet</th><th>Note</th></tr>`;
+    show.forEach(r => {
+      const newBadge = r.isnew ? '<span class="badge">NEW 6/19</span>' : '';
+      const name = r.u ? `<a href="${r.u}" target="_blank" rel="noopener">${r.n}</a>${newBadge}` : r.n+newBadge;
+      h += `<tr><td>${name}<br><small style="color:#888">${r.src}</small></td><td>${r.a}</td><td>${r.p}</td><td>${r.b}</td>`+
+           `<td>${pill(r.pool,'Pool &#10003;','No pool')}</td><td>${pill(r.pet,'Pets &#10003;','No pets')}</td><td>${r.net}</td><td>${r.note}</td></tr>`;
+    });
+    h += '</table></div>';
+    c.insertAdjacentHTML('beforeend', h);
+  });
+}
+document.getElementById('sp-filters').addEventListener('click', e => {
+  if (e.target.tagName !== 'BUTTON') return;
+  spFilter = e.target.dataset.f;
+  document.querySelectorAll('#sp-filters .ctrl-btn').forEach(b => b.classList.toggle('active', b===e.target));
+  renderSP();
+});
+renderSP();
+
+/* ── NICOYA data ── */
+const nicData = [
+ {z:'Zone 1 &mdash; Nosara (Guiones &middot; Pelada &middot; Garza)',s:'Priority area',rows:[
+  {n:'Villa Huitzilin',a:'Las Tecas (10-min walk to Pelada &amp; Guiones)',p:'Inquire',b:'4BR/4BA',pool:'g',pet:'y',wifi:'g',u:'https://www.nosararealestate.com/listing/villa-huitzilin/',src:'Nosara RE',note:'&#11088; TOP PICK. Saltwater pool, Starlink+fiber WiFi, desks every room, sauna+cold plunge. Draft: WhatsApp +506 8817-6555',nw:1,drafted:1},
+  {n:'Casa de Calma',a:'Nosara &mdash; walk to beach',p:'From $3,000',b:'3BR/?BA',pool:'g',pet:'y',wifi:'y',u:'https://www.vacationnosara.com/long-term-rentals-vacationnosara',src:'Vacation Nosara',note:'&#11088; Best entry price VN batch. Draft ready.',nw:1,drafted:1},
+  {n:'Pochote',a:'Nosara &mdash; Guiones, walk to beach',p:'From $3,750',b:'3BR/?BA',pool:'g',pet:'y',wifi:'y',u:'https://www.vacationnosara.com/long-term-rentals-vacationnosara',src:'Vacation Nosara',note:'&#11088; Guiones walk-to-beach. Consolidated in VN draft.',nw:1,drafted:1},
+  {n:'Casa Arena',a:'Nosara &mdash; Guiones, walk to beach',p:'From $3,800',b:'4BR/?BA',pool:'g',pet:'y',wifi:'y',u:'https://www.vacationnosara.com/long-term-rentals-vacationnosara',src:'Vacation Nosara',note:'&#11088; 4BR flexibility. Consolidated in VN draft.',nw:1,drafted:1},
+  {n:'Casa Saltamontes',a:'Nosara &mdash; lush jungle',p:'From $3,800',b:'3BR/?BA',pool:'g',pet:'y',wifi:'y',u:'https://www.vacationnosara.com/long-term-rentals-vacationnosara',src:'Vacation Nosara',note:'&#11088; Private jungle. Consolidated in VN draft.',nw:1,drafted:1},
+  {n:'Patitos Casa',a:'Nosara &mdash; downtown Guiones',p:'From $3,800',b:'3BR/?BA',pool:'g',pet:'y',wifi:'y',u:'https://www.vacationnosara.com/long-term-rentals-vacationnosara',src:'Vacation Nosara',note:'&#11088; Best walkability. Consolidated in VN draft.',nw:1,drafted:1},
+  {n:'Girasol',a:'Nosara &mdash; private, walk to beach',p:'From $4,000',b:'3BR/?BA',pool:'g',pet:'y',wifi:'y',u:'https://www.vacationnosara.com/long-term-rentals-vacationnosara',src:'Vacation Nosara',note:'&#11088; Described as private. Consolidated in VN draft.',nw:1,drafted:1},
+  {n:'Casa Ocaso',a:'Nosara &mdash; walk to beach',p:'From $4,200',b:'4BR/?BA',pool:'g',pet:'y',wifi:'y',u:'https://www.vacationnosara.com/long-term-rentals-vacationnosara',src:'Vacation Nosara',note:'At ceiling (pre-VAT). Ask LT rate reduction. Consolidated in VN draft.',nw:1,drafted:1},
+  {n:'Casa Dos Cocos',a:'Nosara &mdash; Guiones Beach Club',p:'Inquire',b:'4BR/4.5BA',pool:'y',pet:'y',wifi:'y',u:'https://rentnosarareservations.com/en/4544191/casa-dos-cocos-4-br-home-walk-to-beach-surf',src:'RentNosara',note:'Pool unconfirmed. Consolidated with Casa Estrellas in RentNosara draft.',nw:1,drafted:1},
+  {n:'Private Beach House w/ Pool',a:'Playa Pelada',p:'Inquire (LT disc.)',b:'3BR/2BA',pool:'g',pet:'g',wifi:'y',u:'https://www.vrbo.com/208021',src:'VRBO',note:'&#9993;&#65039; Draft to Mango PM (mpmnosararentals@gmail.com) 06-12 &mdash; confirm sent.',nw:0,drafted:1},
+  {n:'Casa Estrellas',a:'Guiones North',p:'Inquire',b:'3BR/3BA',pool:'g',pet:'y',wifi:'y',u:'https://rentnosarareservations.com/en/3385656/casa-estrellas-walk-to-beach-surf-private-pool',src:'RentNosara',note:'&#11088; Walk to beach, private pool. Consolidated in RentNosara draft (06-19).',nw:0,drafted:1},
+  {n:'Casa Guapa',a:'Nosara',p:'$3,228',b:'4BR/3BA',pool:'g',pet:'g',wifi:'y',u:'https://www.airbnb.com/rooms/1358801564376098855',src:'Airbnb',note:'&#11088; Best confirmed Nosara Airbnb. Draft 06-12.',nw:0,drafted:1},
+  {n:'Jungle River Villa w/ Pool',a:'Nosara',p:'$2,754',b:'3BR/2BA',pool:'g',pet:'g',wifi:'y',u:'https://www.airbnb.com/rooms/858056831871659915',src:'Airbnb',note:'&#11088; Solid match, in budget. Draft 06-12.',nw:0,drafted:1},
+  {n:'Best long term option in Nosara',a:'Nosara',p:'$4,062',b:'3BR/1.5BA',pool:'g',pet:'g',wifi:'y',u:'https://www.airbnb.com/rooms/1176022408361757391',src:'Airbnb',note:'Near ceiling, only 1.5BA. Backup.',nw:0,drafted:0},
+  {n:'Jungle House A',a:'Guiones',p:'Inquire',b:'3BR/4BA',pool:'g',pet:'y',wifi:'y',u:'https://www.nosararealestate.com/listing/jungle-house-a-3-br-w-private-pool/',src:'Nosara RE',note:'Private pool. WhatsApp draft consolidated w/ Villa Huitzilin (06-19).',nw:0,drafted:1},
+  {n:'Jungle House B',a:'Guiones',p:'Inquire',b:'3BR/4BA',pool:'g',pet:'y',wifi:'y',u:'https://www.nosararealestate.com/listing/jungle-house-b-3-br-w-private-pool/',src:'Nosara RE',note:'Private pool. WhatsApp draft consolidated w/ Villa Huitzilin (06-19).',nw:0,drafted:1},
+  {n:'Casa Rinc&oacute;n Escondido',a:'Guiones North',p:'Inquire',b:'3BR/3.5BA',pool:'y',pet:'y',wifi:'y',u:'https://www.nosararealestate.com/listing/casa-rincon-escondido/',src:'Nosara RE',note:'WhatsApp draft consolidated w/ Villa Huitzilin (06-19).',nw:0,drafted:1},
+  {n:'Casa Bellevue',a:'Guiones',p:'Inquire',b:'3BR/3.5BA',pool:'y',pet:'y',wifi:'y',u:'https://www.nosararealestate.com/listing/casa-bellevue-location-location-location/',src:'Nosara RE',note:'"Location, location, location." WhatsApp draft 06-19.',nw:0,drafted:1}
+ ]},
+ {z:'Zone 2 &mdash; S&aacute;mara / Carrillo',s:'',rows:[
+  {n:'house savana',a:'S&aacute;mara',p:'$2,357 (06-12 price)',b:'3BR/3BA',pool:'g',pet:'g',wifi:'y',u:'https://www.airbnb.com/rooms/1310226203628143270',src:'Airbnb',note:'&#11088; Budget-friendly. Draft 06-12. Verify price.',nw:0,drafted:1},
+  {n:'Sunset Surf',a:'S&aacute;mara',p:'$2,409 (06-12 price)',b:'3BR/2BA',pool:'g',pet:'g',wifi:'y',u:'https://www.airbnb.com/rooms/1453719288606856325',src:'Airbnb',note:'Solid price. Draft 06-12. Verify price.',nw:0,drafted:1},
+  {n:'ecotourism guayacanes, house 5',a:'S&aacute;mara',p:'$3,659 (06-12 price)',b:'3BR/2BA',pool:'g',pet:'g',wifi:'y',u:'https://www.airbnb.com/rooms/1371995657376407469',src:'Airbnb',note:'Ecotourism community. No draft yet.',nw:0,drafted:0},
+  {n:'New 3BR/3.5BA Container Home',a:'S&aacute;mara',p:'$3,843 (06-12 price)',b:'3BR/3.5BA',pool:'g',pet:'g',wifi:'y',u:'https://www.airbnb.com/rooms/48869496',src:'Airbnb',note:'Contemporary. No draft yet.',nw:0,drafted:0},
+  {n:'Casa AZUL (Beach House)',a:'S&aacute;mara',p:'$4,002 (06-12 price)',b:'3BR/1BA',pool:'g',pet:'g',wifi:'y',u:'https://www.airbnb.com/rooms/52778323',src:'Airbnb',note:'At ceiling, only 1BA. Low priority.',nw:0,drafted:0},
+  {n:'Casa Bejuco &mdash; Ocean View Furnished',a:'Bejuco (Nandayure border)',p:'$2,500',b:'3BR/2BA',pool:'y',pet:'y',wifi:'y',u:'https://www.encuentra24.com/costa-rica-en/real-estate-for-rent-houses/ocean-view-furnished-house-for-rent-guanacaste-bejuco-nandayure-costa-rica/31215846',src:'Encuentra24',note:'200m&sup2;, ocean view, furnished. Pool unconfirmed. No draft yet.',nw:0,drafted:0}
+ ]},
+ {z:'Other Nearby &mdash; Guanacaste Province',s:'Confirm proximity to coast',rows:[
+  {n:'The Sun and the Moon',a:'Guanacaste Prov.',p:'$2,910 (06-12)',b:'3BR/1.5BA',pool:'g',pet:'g',wifi:'y',u:'https://www.airbnb.com/rooms/23481115',src:'Airbnb',note:'Verify exact location vs. Nosara/S&aacute;mara.',nw:0,drafted:0},
+  {n:'Casa Congo (Private w/ Pool)',a:'Caimital',p:'$2,336 (06-12)',b:'3BR/2BA',pool:'g',pet:'g',wifi:'y',u:'https://www.airbnb.com/rooms/949577319191141326',src:'Airbnb',note:'Inland near Nicoya town &mdash; confirm distance to coast.',nw:0,drafted:0},
+  {n:'Casa Rosales',a:'Cuesta Grande',p:'$3,613 (06-12)',b:'3BR/2BA',pool:'g',pet:'g',wifi:'y',u:'https://www.airbnb.com/rooms/1261062004003613797',src:'Airbnb',note:'Verify proximity to priority areas.',nw:0,drafted:0}
+ ]}
+];
+let nicFilter = 'all';
+function renderNic() {
+  const c = document.getElementById('nic-zones'); c.innerHTML = '';
+  let total = 0;
+  nicData.forEach(z => {
+    const rows = z.rows.filter(r =>
+      nicFilter==='all'?true: nicFilter==='pool'?r.pool==='g': nicFilter==='pet'?r.pet==='g': nicFilter==='new'?r.nw===1: r.drafted===1
+    );
+    if (!rows.length) return;
+    total += rows.length;
+    let h = `<div class="zone"><h2>${z.z}${z.s?`<span class="sub">${z.s}</span>`:''}</h2><table><tr><th>Property</th><th>Area</th><th>Price/mo</th><th>Beds/Baths</th><th>Pool</th><th>Pets</th><th>Wi-Fi</th><th>Note</th></tr>`;
+    rows.forEach(r => {
+      const name = r.u ? `<a href="${r.u}" target="_blank" rel="noopener">${r.n}</a>` : r.n;
+      h += `<tr><td>${name}${r.nw?'<span class="badge">NEW</span>':''}${r.drafted?'<span class="drafted-badge">&#9993;&#65039;</span>':''}<br><small>${r.src}</small></td>`+
+           `<td>${r.a}</td><td>${r.p}</td><td>${r.b}</td>`+
+           `<td>${pill(r.pool,'Pool &#10003;','No pool')}</td><td>${pill(r.pet,'Pets &#10003;','No pets')}</td>`+
+           `<td>${pill(r.wifi,'Wi-Fi &#10003;','No Wi-Fi')}</td><td>${r.note}</td></tr>`;
+    });
+    h += '</table></div>';
+    c.insertAdjacentHTML('beforeend', h);
+  });
+  document.getElementById('nic-total').textContent = total;
+}
+document.getElementById('nic-filters').addEventListener('click', e => {
+  if (e.target.tagName !== 'BUTTON') return;
+  nicFilter = e.target.dataset.f;
+  document.querySelectorAll('#nic-filters .ctrl-btn').forEach(b => b.classList.toggle('active', b===e.target));
+  renderNic();
+});
+renderNic();
+
+/* ── NORTE GUANACASTE data ── */
+const ngData = [
+ {z:'Zone 1 &mdash; Playa Flamingo &amp; Playa Potrero',s:'~50 min from Liberia LIR',rows:[
+  {n:'Casa Tigre',a:'Playa Flamingo',p:'$3,200',b:'3BR/3BA',pool:'y',pet:'y',u:'',src:'Flamingo CR',note:'&#11088; Ocean/mountain/beach views. &#9993;&#65039; Drafted.',st:1},
+  {n:'Riviera Casa 5',a:'Playa Potrero',p:'$3,000',b:'3BR/2BA',pool:'y',pet:'y',u:'',src:'Flamingo CR',note:'Riverfront, ocean-vicinity. &#9993;&#65039; Drafted.',st:1}
+ ]},
+ {z:'Zone 2 &mdash; Playa Grande',s:'~1:15 from LIR &middot; Leatherback reserve area',rows:[
+  {n:'3BR Beach House (Leatherback area)',a:'Playa Grande',p:'Ask LT rate',b:'3BR/2BA',pool:'y',pet:'y',u:'',src:'1st Choice Realty',note:'2-min walk to beach. Vacation $220/nt &mdash; negotiate LT. &#9993;&#65039; Drafted.',st:1}
+ ]},
+ {z:'Zone 3 &mdash; Tamarindo &amp; Villareal',s:'~1:20 from LIR',rows:[
+  {n:'Pacific Residences #13',a:'Villareal (5 min to Tamarindo)',p:'$3,600',b:'4BR/3.5BA',pool:'g',pet:'y',u:'',src:'Hidden Coast Realty',note:'&#11088; Gated, A/C, new build, 12-mo lease. &#9993;&#65039; Drafted.',st:1},
+  {n:'Buda House',a:'Villareal',p:'$4,500 + util',b:'4BR/3.5BA',pool:'g',pet:'g',u:'',src:'Hidden Coast Realty',note:'&#11088; Gated, small dogs OK, avail Aug 15. &#9993;&#65039; Drafted.',st:1},
+  {n:'Villa Verde I #02',a:'Tamarindo',p:'$3,400',b:'3BR/3.5BA',pool:'y',pet:'y',u:'',src:'Hidden Coast Realty',note:'Furnished apt, shared pool. Lower priority.',st:0},
+  {n:'Villa Verde I #14',a:'Tamarindo',p:'$3,400 &#8595;',b:'3BR/3.5BA',pool:'y',pet:'y',u:'',src:'Hidden Coast Realty',note:'Renovated condo, price drop. Lower priority.',st:0}
+ ]},
+ {z:'Zone 4 &mdash; Playa Avellanas &amp; Playa Negra',s:'~1:35&ndash;1:50 from LIR',rows:[
+  {n:'Rent Avellanas Portfolio (6 homes)',a:'Playa Avellanas',p:'From $2,300',b:'2BR/2BA',pool:'g',pet:'g',u:'',src:'Avellanas rentals',note:'&#9888;&#65039; 2BR only. Bosque del Sol, Sommerhaus, etc. &#9993;&#65039; Drafted.',st:0}
+ ]}
+];
+let ngFilter = 'all';
+function renderNG() {
+  const c = document.getElementById('ng-zones'); c.innerHTML = '';
+  ngData.forEach(z => {
+    const rows = z.rows.filter(r => ngFilter==='all'?true: ngFilter==='pool'?r.pool==='g': r.st===1);
+    if (!rows.length) return;
+    let h = `<div class="zone"><h2>${z.z}${z.s?`<span class="sub">${z.s}</span>`:''}</h2><table><tr><th>Property</th><th>Area</th><th>Price/mo</th><th>Beds/Baths</th><th>Pool</th><th>Pets</th><th>Note</th></tr>`;
+    rows.forEach(r => {
+      h += `<tr><td>${r.n}<br><small>${r.src}</small></td><td>${r.a}</td><td>${r.p}</td><td>${r.b}</td>`+
+           `<td>${pill(r.pool,'Private pool &#10003;','No pool')}</td><td>${pill(r.pet,'Pets &#10003;','Ask')}</td><td>${r.note}</td></tr>`;
+    });
+    h += '</table></div>';
+    c.insertAdjacentHTML('beforeend', h);
+  });
+}
+document.getElementById('ng-filters').addEventListener('click', e => {
+  if (e.target.tagName !== 'BUTTON') return;
+  ngFilter = e.target.dataset.f;
+  document.querySelectorAll('#ng-filters .ctrl-btn').forEach(b => b.classList.toggle('active', b===e.target));
+  renderNG();
+});
+renderNG();
+
+/* ── CENTRAL VALLEY data ── */
+const cvData = [
+ {zone:'escazu',zlabel:'Zone 1 &mdash; Escaz&uacute;',zsub:'San Rafael &middot; Trejos Montealegre &middot; Guachipel&iacute;n &mdash; main expat hub',rows:[
+  {n:'VILLAS DEL REY: House For Rent',a:'Escaz&uacute; (200m&sup2;, furnished, jacuzzi, 2 parking)',p:'$1,500',b:'3BR / 2BA',pool:'r',poolt:'Interior jacuzzi (no shared pool)',pet:'g',pett:'Pets OK ($0 dep.)',u:'https://www.re.cr/en/costa-rica-rental-properties/central-valley/rl1800164',src:'re.cr RL1800164',nw:1,top:1},
+  {n:'Excellent Three Bedroom Condominium',a:'Escaz&uacute; (170m&sup2;, central AC)',p:'$2,950',b:'3BR / 1BA',pool:'g',poolt:'Community pool',pet:'g',pett:'Pets OK',u:'https://www.re.cr/en/costa-rica-rental-properties/central-valley/rl1800158',src:'re.cr RL1800158',nw:1},
+  {n:'Beautiful Condominium',a:'Escaz&uacute; (194m&sup2;, central AC, garden view)',p:'$2,950',b:'3BR / 2BA',pool:'y',poolt:'Ask',pet:'g',pett:'Pets OK',u:'https://www.re.cr/en/costa-rica-rental-properties/central-valley/rl1800157',src:'re.cr RL1800157',nw:1},
+  {n:'Apartment For Rent in Escaz&uacute;',a:'Escaz&uacute; (194m&sup2;, mountain+greenbelt views)',p:'$3,450',b:'3BR / 1BA',pool:'g',poolt:'Community pool',pet:'g',pett:'Pets OK',u:'https://www.re.cr/en/costa-rica-rental-properties/central-valley/rl1800197',src:'re.cr RL1800197',nw:1},
+  {n:'Casa en Condominio Calahonda',a:'San Rafael de Escaz&uacute;',p:'$2,100',b:'3BR / 2.5BA',pool:'g',poolt:'Pool + rancho',pet:'g',pett:'Up to 2 pets',u:'https://costarica.inmobiliaria.com/escazu+trejos-montealegre/casas+alquiler/',src:'inmobiliaria.com',nw:0},
+  {n:'Casa Condominio con Piscina &amp; Playground',a:'Escaz&uacute;',p:'$2,700',b:'3BR',pool:'g',poolt:'Pool + playground',pet:'y',pett:'Ask',u:'https://www.domusverum.com/propiedades/casa-en-alquiler-trejos-montealegre/',src:'domusverum.com',nw:0},
+  {n:'Casa Semi-Amueblada, Trejos Montealegre',a:'Trejos Montealegre',p:'$2,500',b:'4BR / 174m&sup2;',pool:'y',poolt:'Ask',pet:'g',pett:'Pet-walkable (flat)',u:'https://www.encuentra24.com/costa-rica-es/bienes-raices-alquiler-apartamentos-amueblados/espectacular-casa-semi-amueblada-de-4-hab-en-trejos-montealegre-de-escazu/32155492',src:'Encuentra24 #32155492',nw:0}
+ ]},
+ {zone:'santaana',zlabel:'Zone 2 &mdash; Santa Ana',zsub:'Lindora &middot; Pozos &middot; Piedades',rows:[
+  {n:'House for Rent in Condo in Santa Ana',a:'Santa Ana (200m&sup2;, furnished, A/C, gated)',p:'$2,000',b:'3BR / 2.5BA',pool:'g',poolt:'Community pool',pet:'g',pett:'Pets OK',u:'https://www.re.cr/en/costa-rica-rental-properties/central-valley/rl1800033',src:'re.cr RL1800033',nw:1,top:1},
+  {n:'Condominio en Lindora',a:'Lindora (Santa Ana)',p:'$2,600',b:'3BR / 2.5BA',pool:'g',poolt:'Community pool',pet:'y',pett:'Ask',u:'https://www.encuentra24.com/costa-rica-en/real-estate-for-rent-apartments-furnished/lindora-santa-ana/32170141',src:'Encuentra24 #32170141',nw:0},
+  {n:'The LAB in Lindora',a:'Lindora (tech corridor)',p:'$1,950',b:'2BR+loft / 2BA',pool:'y',poolt:'Ask',pet:'y',pett:'Ask',u:'',src:'Various listings',nw:0},
+  {n:'Casa en Pozos',a:'Pozos de Santa Ana',p:'$2,200',b:'3BR / 2BA',pool:'y',poolt:'Ask',pet:'y',pett:'Ask',u:'',src:'Encuentra24',nw:0}
+ ]},
+ {zone:'heredia',zlabel:'Zone 3 &mdash; Heredia',zsub:'San Pablo &middot; San Rafael &middot; San Francisco',rows:[
+  {n:'Rincón de las Brisas',a:'San Rafael de Heredia',p:'Ask',b:'3BR / 2BA',pool:'g',poolt:'Shared community pool',pet:'g',pett:'Pets OK (small)',u:'https://www.horizonsrealtycr.com/listings/',src:'Horizons Realty CR',nw:0},
+  {n:'Casa en Heredia Centro',a:'Heredia Centro',p:'$1,400',b:'3BR / 1BA',pool:'y',poolt:'Ask',pet:'y',pett:'Ask',u:'',src:'OLX CR',nw:0},
+  {n:'Alquiler San Pablo Heredia',a:'San Pablo',p:'$1,200',b:'3BR / 2BA',pool:'r',poolt:'No pool',pet:'y',pett:'Ask',u:'',src:'Encuentra24',nw:0}
+ ]},
+ {zone:'belen',zlabel:'Zone 4 &mdash; Bel&eacute;n / Cariari',zsub:'La Ribera &middot; Asent. &middot; Cariari',rows:[
+  {n:'Casa en Bel&eacute;n La Ribera',a:'La Ribera de Bel&eacute;n',p:'$1,800',b:'3BR / 2BA',pool:'y',poolt:'Ask',pet:'y',pett:'Ask',u:'',src:'Encuentra24',nw:0},
+  {n:'Condominio Cariari',a:'Cariari',p:'$2,100',b:'3BR / 2.5BA',pool:'g',poolt:'Club pool + gym',pet:'y',pett:'Ask',u:'',src:'Remax CR',nw:0},
+  {n:'Townhouse Bel&eacute;n',a:'Bel&eacute;n',p:'$1,650',b:'3BR / 2BA',pool:'y',poolt:'Ask',pet:'y',pett:'Ask',u:'',src:'OLX CR',nw:0}
+ ]}
+];
+const cvZoneMap = {escazu:'escazu',santaana:'santaana',heredia:'heredia',belen:'belen'};
+let cvFilter = 'all';
+function renderCV() {
+  const c = document.getElementById('cv-zones'); c.innerHTML = '';
+  cvData.forEach(z => {
+    const rows = z.rows.filter(r => {
+      if (cvFilter==='all') return true;
+      if (cvFilter==='new') return r.nw===1;
+      if (cvFilter==='pool') return r.pool==='g';
+      if (cvFilter==='pet') return r.pet==='g';
+      return z.zone === cvFilter;
+    });
+    if (!rows.length) return;
+    let h = `<div class="zone"><h2>${z.zlabel}<span class="sub">${z.zsub}</span></h2><table><tr><th>Property</th><th>Area</th><th>Price/mo</th><th>Beds/Baths</th><th>Pool</th><th>Pets</th></tr>`;
+    rows.forEach(r => {
+      const name = r.u ? `<a href="${r.u}" target="_blank" rel="noopener">${r.n}</a>` : r.n;
+      h += `<tr><td>${name}${r.nw?'<span class="badge">NEW</span>':''}${r.top?'<span class="star-badge">&#11088;</span>':''}<br><small>${r.src}</small></td>`+
+           `<td>${r.a}</td><td>${r.p}</td><td>${r.b}</td>`+
+           `<td><span class="pill ${pc[r.pool]}">${r.poolt||'Ask'}</span></td>`+
+           `<td><span class="pill ${pc[r.pet]}">${r.pett||'Ask'}</span></td></tr>`;
+    });
+    h += '</table></div>';
+    c.insertAdjacentHTML('beforeend', h);
+  });
+}
+document.getElementById('cv-filters').addEventListener('click', e => {
+  if (e.target.tagName !== 'BUTTON') return;
+  cvFilter = e.target.dataset.f;
+  document.querySelectorAll('#cv-filters .ctrl-btn').forEach(b => b.classList.toggle('active', b===e.target));
+  renderCV();
+});
+renderCV();
+
+/* ── Initial render ── */
+renderSidebar();
+showPanel('cr','south-pacific');
+</script>
+</body>
+</html>
